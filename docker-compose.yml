@@ -1,0 +1,26 @@
+version: '2'
+services:
+  nlp:
+    image: gswyhq/sentiment-analysis-textcnn
+#    build: .
+    tty: true
+    working_dir: "/notebooks/TextCNN"
+    restart: always
+    ports:
+      - "18000:8000"
+    environment:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      MYDIR: "/notebooks/TextCNN"
+
+#    volumes:
+#      - .:/notebooks/TextCNN
+
+    networks:
+      - mynet
+    command: /bin/bash
+
+networks:
+  mynet:
+    driver: bridge
+

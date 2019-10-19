@@ -9,6 +9,7 @@
 import os
 import tensorflow as tf
 import numpy as np
+import pickle
 import data
 import datetime
 from text_cnn import ModelConfig, TextCNNModel
@@ -18,11 +19,11 @@ flags = tf.flags
 FLAGS = flags.FLAGS
 
 # 数据路径
-flags.DEFINE_string("positive_data_file", "./data_set/polarity.pos", "splited by ,")
-flags.DEFINE_string("negative_data_file", "./data_set/polarity.neg", "splited by ,")
+flags.DEFINE_string("positive_data_file", "./data_set/pos.xls", "splited by ,")
+flags.DEFINE_string("negative_data_file", "./data_set/neg.xls", "splited by ,")
 flags.DEFINE_string("pred_data", "None", "splited by ,")
-flags.DEFINE_string("model_dir", "./data/model/", "output model dir")
-flags.DEFINE_string("output_dir", "./data/model/", "evaluate output dir")
+flags.DEFINE_string("model_dir", "./model/", "output model dir")
+flags.DEFINE_string("output_dir", "./model/", "evaluate output dir")
 flags.DEFINE_string("vocab", None, "vocab file")
 
 # cnn 参数
@@ -39,11 +40,11 @@ flags.DEFINE_bool("is_eval", False, "Whether to run eval on the dev set.")
 flags.DEFINE_bool("is_predict", False, "Whether to run prediction.")
 flags.DEFINE_integer("batch_size", 128, "Batch size.")
 tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
-flags.DEFINE_integer("num_train_steps", 100000, "Train steps")
+flags.DEFINE_integer("num_train_steps", 10000, "Train steps")
 flags.DEFINE_integer("keep_checkpoint_max", 20, "Max keep checkpoints")
 flags.DEFINE_integer("save_summary_steps", 1000, "Step intervals to save summary")
 flags.DEFINE_integer("log_step_count_steps", 1000, "Step intervals to log step info")
-flags.DEFINE_integer("save_checkpoints_steps", 500, "Step intervals to save checkpoints")
+flags.DEFINE_integer("save_checkpoints_steps", 200, "Step intervals to save checkpoints")
 flags.DEFINE_float("learning_rate", 0.001, "Learning rate.")
 
 
@@ -53,9 +54,15 @@ def preprocess():
 
     # Build vocabulary
     max_document_length = max([len(x.split(" ")) for x in x_text])
+    print('max_document_length', max_document_length)
+
+    # 根据所有已分词好的文本建立好一个词典，然后找出每个词在词典中对应的索引，不足长度或者不存在的词补0
     vocab_processor = learn.preprocessing.VocabularyProcessor(max_document_length)
     x = np.array(list(vocab_processor.fit_transform(x_text)))
     tf.logging.info("Shape of X :{}".format(str(x.shape)))
+
+    with open(os.path.join(FLAGS.model_dir, 'vocab_processor.pkl'), 'wb')as f:
+        pickle.dump(vocab_processor, f)
 
     # Random shuffle data
     np.random.seed(10)
@@ -151,16 +158,16 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev, model_config):
             # Training loop, For each batch ..
             for batch in batches:
                 x_batch, y_batch = zip(*batch)
-            #     train_step(x_batch, y_batch)
-            #     current_step = tf.train.global_step(sess, global_step)
-            #
-            #     if current_step % FLAGS.save_checkpoints_steps == 0:
-            #         tf.logging.info("\nEvaluation:")
-            #         dev_step(x_dev, y_dev)
-            #     if current_step % FLAGS.save_checkpoints_steps == 0:
-            #         path = saver.save(sess, checkpoint_prefix, global_step=current_step)
-            #         tf.logging.info("Saved model checkpoint to {}\n".format(path))
+                train_step(x_batch, y_batch)
+                current_step = tf.train.global_step(sess, global_step)
 
+                if current_step % FLAGS.save_checkpoints_steps == 0:
+                    tf.logging.info("\nEvaluation:")
+                    dev_step(x_dev, y_dev)
+                if current_step % FLAGS.save_checkpoints_steps == 0:
+                    path = saver.save(sess, checkpoint_prefix, global_step=current_step)
+                    tf.logging.info("Saved model checkpoint to {}\n".format(path))
+    print('训练完成；')
 
 def main(_):
     tf.logging.set_verbosity(tf.logging.INFO)

@@ -7,7 +7,7 @@
 # @description  ：  仅供学习, 请勿用于商业用途
 import re
 import numpy as np
-
+import pandas as pd
 
 class DataSet(object):
     def __init__(self, positive_data_file, negative_data_file):
@@ -15,40 +15,28 @@ class DataSet(object):
 
     def load_data_and_labels(self, positive_data_file, negative_data_file):
         # load data from files
-        positive_data = list(open(positive_data_file, "r", encoding='utf-8').readlines())
-        positive_data = [s.strip() for s in positive_data]
-        negative_data = list(open(negative_data_file, "r", encoding='utf-8').readlines())
-        negative_data = [s.strip() for s in negative_data]
+        if positive_data_file.endswith('.xls'):
+            neg = pd.read_excel(negative_data_file, header=None)
+            pos = pd.read_excel(positive_data_file, header=None)
+            negative_data = [t[0].strip() for t in neg.values]
+            positive_data = [t[0].strip() for t in pos.values]
+        else:
+            positive_data = list(open(positive_data_file, "r", encoding='utf-8').readlines())
+            positive_data = [s.strip() for s in positive_data]
+            negative_data = list(open(negative_data_file, "r", encoding='utf-8').readlines())
+            negative_data = [s.strip() for s in negative_data]
 
         # split by words
         x_text = positive_data + negative_data
-        x_text = [self.clean_str(sent) for sent in x_text]
+
+        x_text = [' '.join(list(sent)) for sent in x_text]
 
         # generate labels
         positive_labels = [[0, 1] for _ in positive_data]
         negative_labels = [[1, 0] for _ in negative_data]
         y = np.concatenate([positive_labels, negative_labels], 0)
-        return [x_text, y]
 
-    def clean_str(self, string):
-        """
-        Tokenization/string cleaning for all datasets except for SST.
-        Original taken from https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
-        """
-        string = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", string)
-        string = re.sub(r"\'s", " \'s", string)
-        string = re.sub(r"\'ve", " \'ve", string)
-        string = re.sub(r"n\'t", " n\'t", string)
-        string = re.sub(r"\'re", " \'re", string)
-        string = re.sub(r"\'d", " \'d", string)
-        string = re.sub(r"\'ll", " \'ll", string)
-        string = re.sub(r",", " , ", string)
-        string = re.sub(r"!", " ! ", string)
-        string = re.sub(r"\(", " \( ", string)
-        string = re.sub(r"\)", " \) ", string)
-        string = re.sub(r"\?", " \? ", string)
-        string = re.sub(r"\s{2,}", " ", string)
-        return string.strip().lower()
+        return [x_text, y]
 
     def batch_iter(data, batch_size, num_epochs, shuffle=True):
         """
@@ -67,5 +55,5 @@ class DataSet(object):
             for batch_num in range(num_batches_per_epoch):
                 start_index = batch_num * batch_size
                 end_index = min((batch_num + 1) * batch_size, data_size)
-                print (shuffled_data[start_index])
+                # print (shuffled_data[start_index])
                 yield shuffled_data[start_index:end_index]

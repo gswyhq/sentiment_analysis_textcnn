@@ -1,0 +1,9 @@
+# pipreqs /home/gswyhq/ModifyAI
+# sudo pip3 install -r requirements.txt -i http://pypi.douban.com/simple --trusted-host=pypi.douban.com
+
+Keras==2.2.4
+pandas==0.24.2
+pydot==1.4.1
+tensorboard==1.14.0
+tensorflow==1.14.0
+xlutils==2.0.0
